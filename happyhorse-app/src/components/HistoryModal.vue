@@ -39,6 +39,27 @@
               <div class="card-duration" v-if="item.params?.duration">
                 {{ item.params.duration }}s
               </div>
+
+              <!-- 上传中 loading -->
+              <div v-if="item._uploading" class="card-uploading">
+                <div class="upload-spinner"></div>
+                <span>上传中...</span>
+              </div>
+
+              <!-- 已上传标识 -->
+              <div v-if="item.cosUploaded" class="card-uploaded-badge">
+                ✅ 已上传
+              </div>
+
+              <!-- 上传按钮（hover 时显示，仅未上传的文件） -->
+              <button
+                v-if="cosAvailable && !item.cosUploaded && !item._uploading"
+                class="card-upload-btn"
+                @click.stop="openUploadDialog(item)"
+                title="上传到 COS"
+              >
+                ⬆️
+              </button>
             </div>
             <div class="card-info">
               <p class="card-prompt">{{ item.prompt || '无提示词' }}</p>
@@ -51,17 +72,93 @@
         </div>
       </div>
     </div>
+
+    <!-- 上传文件名输入弹窗 -->
+    <div v-if="showNameDialog" class="name-dialog-overlay" @click.self="showNameDialog = false">
+      <div class="name-dialog">
+        <div class="name-dialog-header">
+          <h3>⬆️ 上传到 COS</h3>
+          <button class="btn-close" @click="showNameDialog = false">✕</button>
+        </div>
+        <div class="name-dialog-body">
+          <p class="dialog-desc">
+            文件将上传到：<code>video_create_record/{{ todayFolder }}/</code>
+          </p>
+          <div class="form-group">
+            <label>文件名称</label>
+            <input
+              v-model="uploadFileName"
+              type="text"
+              placeholder="输入文件名（含扩展名）"
+              @keyup.enter="confirmUpload"
+            />
+          </div>
+          <div v-if="uploadError" class="error-inline">❌ {{ uploadError }}</div>
+        </div>
+        <div class="name-dialog-footer">
+          <button class="btn-cancel" @click="showNameDialog = false">取消</button>
+          <button
+            class="btn-confirm"
+            :disabled="!uploadFileName.trim() || isUploading"
+            @click="confirmUpload"
+          >
+            {{ isUploading ? '上传中...' : '确定上传' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { getHistory, removeHistory, clearHistory } from '../api/history.js'
+import { ref, computed, onMounted } from 'vue'
+import { getHistory, removeHistory, clearHistory, markUploaded } from '../api/history.js'
+import { getCosConfig, listObjects, createFolder, uploadFileFromUrl } from '../api/cos.js'
 
 defineEmits(['close', 'view'])
 
 const activeTab = ref('video')
 const historyList = ref(getHistory())
+
+// COS 相关
+const cosAvailable = ref(false)
+
+// 上传弹窗
+const showNameDialog = ref(false)
+const uploadFileName = ref('')
+const uploadError = ref('')
+const isUploading = ref(false)
+const uploadingItem = ref(null)
+const todayFolder = ref('')
+
+// 生成今天日期文件夹名 YYYY-MM-DD
+function getTodayFolder() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+onMounted(() => {
+  todayFolder.value = getTodayFolder()
+  checkCosAvailable()
+})
+
+async function checkCosAvailable() {
+  const config = getCosConfig()
+  if (!config.bucket || !config.secretId || !config.secretKey) {
+    cosAvailable.value = false
+    return
+  }
+
+  // 尝试列出根目录，判断是否可用
+  try {
+    await listObjects('')
+    cosAvailable.value = true
+    // 标记成功访问过
+    localStorage.setItem('cos_last_success', Date.now().toString())
+  } catch {
+    cosAvailable.value = false
+  }
+}
 
 const videoList = computed(() =>
   historyList.value.filter(item => item.category === 'video')
@@ -94,6 +191,77 @@ function confirmClear() {
   if (confirm('确定清空所有历史记录？此操作不可恢复。')) {
     clearHistory()
     historyList.value = []
+  }
+}
+
+// === 上传功能 ===
+
+function openUploadDialog(item) {
+  uploadingItem.value = item
+  // 默认文件名：用 task_id 或 id + .mp4
+  uploadFileName.value = `${item.taskId || item.id}.mp4`
+  uploadError.value = ''
+  showNameDialog.value = true
+}
+
+async function confirmUpload() {
+  const fileName = uploadFileName.value.trim()
+  if (!fileName) {
+    uploadError.value = '请输入文件名称'
+    return
+  }
+
+  const item = uploadingItem.value
+  if (!item || !item.videoUrl) {
+    uploadError.value = '无有效视频链接'
+    return
+  }
+
+  isUploading.value = true
+  uploadError.value = ''
+  item._uploading = true
+
+  try {
+    const basePath = `video_create_record/${todayFolder.value}/`
+
+    // 1. 检查文件夹是否存在
+    let folderExists = false
+    try {
+      const result = await listObjects('video_create_record/')
+      folderExists = result.folders.includes(todayFolder.value)
+    } catch {
+      folderExists = false
+    }
+
+    // 2. 不存在则创建
+    if (!folderExists) {
+      // 先确保 video_create_record/ 存在
+      try {
+        await createFolder('video_create_record/')
+      } catch {
+        // 可能已存在，忽略
+      }
+      try {
+        await createFolder(basePath)
+      } catch (err) {
+        throw new Error(`创建文件夹失败：${err.message || '未知错误'}`)
+      }
+    }
+
+    // 3. 上传视频文件
+    const fullKey = basePath + fileName
+    await uploadFileFromUrl(fullKey, item.videoUrl)
+
+    // 4. 标记为已上传
+    markUploaded(item.id)
+    item.cosUploaded = true
+
+    showNameDialog.value = false
+  } catch (err) {
+    uploadError.value = err.message || '上传失败'
+  } finally {
+    isUploading.value = false
+    item._uploading = false
   }
 }
 </script>
@@ -140,15 +308,9 @@ function confirmClear() {
   border-bottom: 1px solid #2a2a4a;
 }
 
-.modal-header h2 {
-  font-size: 1.2rem;
-  color: #e0e0e0;
-}
+.modal-header h2 { font-size: 1.2rem; color: #e0e0e0; }
 
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
+.header-actions { display: flex; gap: 8px; }
 
 .btn-clear {
   background: transparent;
@@ -160,9 +322,7 @@ function confirmClear() {
   font-size: 0.85rem;
 }
 
-.btn-clear:hover {
-  background: #ff6b6b22;
-}
+.btn-clear:hover { background: #ff6b6b22; }
 
 .btn-close {
   background: #2a2a4a;
@@ -175,9 +335,7 @@ function confirmClear() {
   font-size: 1rem;
 }
 
-.btn-close:hover {
-  background: #3a3a5a;
-}
+.btn-close:hover { background: #3a3a5a; }
 
 .modal-tabs {
   display: flex;
@@ -198,10 +356,7 @@ function confirmClear() {
   transition: all 0.2s;
 }
 
-.modal-tabs button.active {
-  background: #2a2a4a;
-  color: #fff;
-}
+.modal-tabs button.active { background: #2a2a4a; color: #fff; }
 
 .modal-body {
   flex: 1;
@@ -215,11 +370,7 @@ function confirmClear() {
   color: #666;
 }
 
-.empty-icon {
-  font-size: 3rem;
-  display: block;
-  margin-bottom: 12px;
-}
+.empty-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
 
 .history-grid {
   display: grid;
@@ -259,10 +410,7 @@ function confirmClear() {
   object-fit: cover;
 }
 
-.thumb-placeholder {
-  font-size: 2.5rem;
-  opacity: 0.5;
-}
+.thumb-placeholder { font-size: 2.5rem; opacity: 0.5; }
 
 .card-duration {
   position: absolute;
@@ -275,9 +423,7 @@ function confirmClear() {
   border-radius: 4px;
 }
 
-.card-info {
-  padding: 10px;
-}
+.card-info { padding: 10px; }
 
 .card-prompt {
   font-size: 0.85rem;
@@ -288,10 +434,7 @@ function confirmClear() {
   margin-bottom: 4px;
 }
 
-.card-time {
-  font-size: 0.75rem;
-  color: #666;
-}
+.card-time { font-size: 0.75rem; color: #666; }
 
 .card-delete {
   position: absolute;
@@ -308,11 +451,175 @@ function confirmClear() {
   transition: opacity 0.2s;
 }
 
-.history-card:hover .card-delete {
-  opacity: 1;
+.history-card:hover .card-delete { opacity: 1; }
+.card-delete:hover { background: rgba(255, 107, 107, 0.8); }
+
+/* 上传按钮 */
+.card-upload-btn {
+  position: absolute;
+  top: 6px;
+  right: 40px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.card-delete:hover {
-  background: rgba(255, 107, 107, 0.8);
+.history-card:hover .card-upload-btn { opacity: 1; }
+.card-upload-btn:hover { background: rgba(78, 205, 196, 0.8); }
+
+/* 上传中 loading */
+.card-uploading {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffd93d;
+  font-size: 0.8rem;
 }
+
+.upload-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #444;
+  border-top-color: #ffd93d;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 已上传标识 */
+.card-uploaded-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(107, 203, 119, 0.9);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* 文件名输入弹窗 */
+.name-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: fadeIn 0.2s ease;
+}
+
+.name-dialog {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 440px;
+  animation: slideUp 0.3s ease;
+}
+
+.name-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.name-dialog-header h3 { font-size: 1.1rem; color: #e0e0e0; }
+
+.name-dialog-body { padding: 20px; }
+
+.dialog-desc {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.dialog-desc code {
+  background: #0f0f1a;
+  color: #4ecdc4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.form-group { margin-bottom: 12px; }
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  width: 100%;
+  background: #0f0f1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.form-group input:focus { border-color: #4ecdc4; }
+
+.error-inline {
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.name-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid #2a2a4a;
+}
+
+.btn-cancel {
+  background: #2a2a4a;
+  border: none;
+  color: #ccc;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-cancel:hover { background: #3a3a5a; }
+
+.btn-confirm {
+  background: linear-gradient(135deg, #4ecdc4, #44a08d);
+  border: none;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.btn-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-confirm:not(:disabled):hover { opacity: 0.85; }
 </style>

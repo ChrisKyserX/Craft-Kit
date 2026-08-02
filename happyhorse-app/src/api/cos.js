@@ -184,6 +184,57 @@ export async function uploadFile(key, file, onProgress) {
 }
 
 /**
+ * 从 URL 获取文件并上传到 COS
+ * @param {string} key - 文件在 COS 中的完整路径
+ * @param {string} url - 文件的远程 URL
+ * @param {function} onProgress - 进度回调
+ * @returns {Promise<object>}
+ */
+export async function uploadFileFromUrl(key, url, onProgress) {
+  const config = getCosConfig()
+  const cos = createCosInstance()
+
+  if (!config.secretId || !config.secretKey) {
+    throw new Error('上传文件需要配置 SecretId 和 SecretKey')
+  }
+
+  try {
+    // 1. 从 URL 获取文件（使用 fetch 获取 blob）
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`获取文件失败：HTTP ${response.status}`)
+    }
+    const blob = await response.blob()
+
+    // 2. 推断文件名和类型
+    const urlParts = url.split('/')
+    const originalName = urlParts[urlParts.length - 1] || 'video.mp4'
+    const contentType = blob.type || 'video/mp4'
+
+    // 3. 构造 File 对象
+    const file = new File([blob], originalName, { type: contentType })
+
+    // 4. 上传到 COS
+    const result = await cos.uploadFile({
+      Bucket: config.bucket,
+      Region: config.region,
+      Key: key,
+      Body: file,
+      onProgress: (progressData) => {
+        if (onProgress) {
+          onProgress(progressData.percent)
+        }
+      }
+    })
+
+    return result
+  } catch (err) {
+    console.error('[COS] Upload from URL error:', err)
+    throw err
+  }
+}
+
+/**
  * 格式化文件大小
  */
 export function formatSize(bytes) {

@@ -43,3 +43,15 @@ export function removeHistory(id) {
 export function clearHistory() {
   localStorage.removeItem(HISTORY_KEY)
 }
+
+/**
+ * 标记某条记录为已上传到 COS
+ */
+export function markUploaded(id) {
+  const history = getHistory()
+  const item = history.find(i => i.id === id)
+  if (item) {
+    item.cosUploaded = true
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
+  }
+}

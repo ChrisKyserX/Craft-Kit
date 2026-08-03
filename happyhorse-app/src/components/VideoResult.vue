@@ -20,9 +20,9 @@ defineProps({
 
 <style scoped>
 .video-result {
-  background: #1e1e1e;
+  background: #222222;
   border-radius: 12px;
-  border: 1px solid #333333;
+  border: 1px solid #3a3a3a;
   overflow: hidden;
   animation: fadeIn 0.4s ease;
 }
@@ -37,13 +37,13 @@ defineProps({
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #3a3a3a;
   font-weight: 500;
 }
 
 .download-link {
   font-size: 0.85rem;
-  color: #888;
+  color: #999;
   text-decoration: none;
 }
 

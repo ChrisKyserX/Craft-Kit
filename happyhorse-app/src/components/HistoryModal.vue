@@ -284,8 +284,8 @@ async function confirmUpload() {
 }
 
 .modal-container {
-  background: #1e1e1e;
-  border: 1px solid #333333;
+  background: #222222;
+  border: 1px solid #3a3a3a;
   border-radius: 16px;
   width: 90%;
   max-width: 720px;
@@ -305,10 +305,10 @@ async function confirmUpload() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #3a3a3a;
 }
 
-.modal-header h2 { font-size: 1.2rem; color: #e0e0e0; }
+.modal-header h2 { font-size: 1.2rem; color: #f0f0f0; }
 
 .header-actions { display: flex; gap: 8px; }
 
@@ -325,9 +325,9 @@ async function confirmUpload() {
 .btn-clear:hover { background: #cc444422; }
 
 .btn-close {
-  background: #333333;
+  background: #3a3a3a;
   border: none;
-  color: #ccc;
+  color: #ddd;
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -349,14 +349,14 @@ async function confirmUpload() {
   padding: 8px;
   background: transparent;
   border: none;
-  color: #888;
+  color: #999;
   font-size: 0.9rem;
   cursor: pointer;
   border-radius: 8px;
   transition: all 0.2s;
 }
 
-.modal-tabs button.active { background: #333333; color: #fff; }
+.modal-tabs button.active { background: #3a3a3a; color: #fff; }
 
 .modal-body {
   flex: 1;
@@ -367,7 +367,7 @@ async function confirmUpload() {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: #bbb;
 }
 
 .empty-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
@@ -380,7 +380,7 @@ async function confirmUpload() {
 
 .history-card {
   background: #111111;
-  border: 1px solid #333333;
+  border: 1px solid #3a3a3a;
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
@@ -389,7 +389,7 @@ async function confirmUpload() {
 }
 
 .history-card:hover {
-  border-color: #888;
+  border-color: #999;
   transform: translateY(-2px);
 }
 
@@ -427,14 +427,14 @@ async function confirmUpload() {
 
 .card-prompt {
   font-size: 0.85rem;
-  color: #e0e0e0;
+  color: #f0f0f0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-bottom: 4px;
 }
 
-.card-time { font-size: 0.75rem; color: #666; }
+.card-time { font-size: 0.75rem; color: #bbb; }
 
 .card-delete {
   position: absolute;
@@ -486,7 +486,7 @@ async function confirmUpload() {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #888;
+  color: #999;
   font-size: 0.8rem;
 }
 
@@ -494,7 +494,7 @@ async function confirmUpload() {
   width: 20px;
   height: 20px;
   border: 2px solid #444;
-  border-top-color: #888;
+  border-top-color: #999;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -527,8 +527,8 @@ async function confirmUpload() {
 }
 
 .name-dialog {
-  background: #1e1e1e;
-  border: 1px solid #333333;
+  background: #222222;
+  border: 1px solid #3a3a3a;
   border-radius: 12px;
   width: 90%;
   max-width: 440px;
@@ -540,22 +540,22 @@ async function confirmUpload() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #3a3a3a;
 }
 
-.name-dialog-header h3 { font-size: 1.1rem; color: #e0e0e0; }
+.name-dialog-header h3 { font-size: 1.1rem; color: #f0f0f0; }
 
 .name-dialog-body { padding: 20px; }
 
 .dialog-desc {
   font-size: 0.85rem;
-  color: #888;
+  color: #999;
   margin-bottom: 16px;
 }
 
 .dialog-desc code {
   background: #111111;
-  color: #aaa;
+  color: #bbb;
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -566,7 +566,7 @@ async function confirmUpload() {
 .form-group label {
   display: block;
   font-size: 0.85rem;
-  color: #888;
+  color: #999;
   margin-bottom: 6px;
 }
 
@@ -576,12 +576,12 @@ async function confirmUpload() {
   border: 1px solid #333;
   border-radius: 8px;
   padding: 10px 12px;
-  color: #e0e0e0;
+  color: #f0f0f0;
   font-size: 0.95rem;
   outline: none;
 }
 
-.form-group input:focus { border-color: #aaa; }
+.form-group input:focus { border-color: #bbb; }
 
 .error-inline {
   color: #cc4444;
@@ -594,13 +594,13 @@ async function confirmUpload() {
   justify-content: flex-end;
   gap: 8px;
   padding: 16px 20px;
-  border-top: 1px solid #333333;
+  border-top: 1px solid #3a3a3a;
 }
 
 .btn-cancel {
-  background: #333333;
+  background: #3a3a3a;
   border: none;
-  color: #ccc;
+  color: #ddd;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;

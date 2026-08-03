@@ -243,10 +243,10 @@ async function submitTask() {
 }
 
 .form-section {
-  background: #1e1e1e;
+  background: #222222;
   padding: 20px;
   border-radius: 12px;
-  border: 1px solid #333333;
+  border: 1px solid #3a3a3a;
   margin-bottom: 16px;
 }
 
@@ -255,7 +255,7 @@ async function submitTask() {
 .form-group label {
   display: block;
   font-size: 0.85rem;
-  color: #888;
+  color: #999;
   margin-bottom: 6px;
 }
 
@@ -267,7 +267,7 @@ async function submitTask() {
   border: 1px solid #333;
   border-radius: 8px;
   padding: 10px 12px;
-  color: #e0e0e0;
+  color: #f0f0f0;
   font-size: 0.95rem;
   outline: none;
   resize: vertical;
@@ -277,7 +277,7 @@ async function submitTask() {
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: #888;
+  border-color: #999;
 }
 
 .form-row {
@@ -307,8 +307,8 @@ async function submitTask() {
 .status-card {
   padding: 16px;
   border-radius: 10px;
-  border: 1px solid #333333;
-  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  background: #222222;
 }
 
 .status-header {
@@ -319,15 +319,15 @@ async function submitTask() {
   font-weight: 500;
 }
 
-.task-id { margin-top: 8px; font-size: 0.8rem; color: #666; }
-.task-id code { color: #888; word-break: break-all; }
+.task-id { margin-top: 8px; font-size: 0.8rem; color: #bbb; }
+.task-id code { color: #999; word-break: break-all; }
 
 .error-msg { margin-top: 8px; color: #cc4444; font-size: 0.9rem; }
 
 .spinner {
   width: 16px; height: 16px;
   border: 2px solid #444;
-  border-top-color: #888;
+  border-top-color: #999;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-left: auto;
@@ -336,8 +336,8 @@ async function submitTask() {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .status-pending { border-color: #555; }
-.status-running { border-color: #888; }
-.status-success { border-color: #888; }
+.status-running { border-color: #999; }
+.status-success { border-color: #999; }
 .status-error { border-color: #cc4444; }
 
 .image-input-row {
@@ -351,19 +351,19 @@ async function submitTask() {
   border: 1px solid #333;
   border-radius: 8px;
   padding: 10px 12px;
-  color: #e0e0e0;
+  color: #f0f0f0;
   font-size: 0.95rem;
   outline: none;
 }
 
 .url-input:focus {
-  border-color: #888;
+  border-color: #999;
 }
 
 .upload-btn {
-  background: #333333;
+  background: #3a3a3a;
   border: 1px solid #444;
-  color: #ccc;
+  color: #ddd;
   padding: 10px 16px;
   border-radius: 8px;
   cursor: pointer;
@@ -394,13 +394,13 @@ async function submitTask() {
 }
 
 .drop-zone.drag-over {
-  border-color: #888;
+  border-color: #999;
   background: rgba(255, 217, 61, 0.05);
 }
 
 .drop-hint {
   text-align: center;
-  color: #666;
+  color: #bbb;
   pointer-events: none;
 }
 

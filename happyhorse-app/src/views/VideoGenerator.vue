@@ -6,12 +6,13 @@
         <label>API Key：</label>
         <input
           v-model="apiKey"
-          type="password"
+          type="text"
+          :class="['input-secret', { 'input-secret--visible': showKey }]"
           placeholder="sk-xxxxxxxxxxxxxxxx"
           @change="saveApiKey"
         />
-        <button class="btn-small" @click="toggleKeyVisibility">
-          {{ showKey ? '隐藏' : '显示' }}
+        <button class="btn-small" @click="toggleKeyVisibility" :title="showKey ? '隐藏' : '显示'">
+          {{ showKey ? '👁️' : '👁️‍🗨️' }}
         </button>
         <button class="btn-small btn-history" @click="showHistory = true">
           📜 历史
@@ -72,8 +73,6 @@ function saveApiKey() {
 
 function toggleKeyVisibility() {
   showKey.value = !showKey.value
-  const input = document.querySelector('.api-key-bar input')
-  input.type = showKey.value ? 'text' : 'password'
 }
 
 function viewDetail(item) {
@@ -89,10 +88,7 @@ function viewDetail(item) {
 
 .page-header h1 {
   font-size: 1.8rem;
-  background: linear-gradient(135deg, #444, #333, #222);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #f0f0f0;
   margin-bottom: 16px;
 }
 
@@ -100,16 +96,16 @@ function viewDetail(item) {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1e1e1e;
+  background: #222222;
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px solid #333333;
+  border: 1px solid #3a3a3a;
 }
 
 .api-key-bar label {
   font-size: 0.9rem;
   white-space: nowrap;
-  color: #888;
+  color: #999;
 }
 
 .api-key-bar input {
@@ -118,19 +114,27 @@ function viewDetail(item) {
   border: 1px solid #333;
   border-radius: 6px;
   padding: 8px 12px;
-  color: #e0e0e0;
+  color: #f0f0f0;
   font-size: 0.9rem;
   outline: none;
 }
 
 .api-key-bar input:focus {
-  border-color: #888;
+  border-color: #999;
+}
+
+.input-secret {
+  -webkit-text-security: disc;
+}
+
+.input-secret.input-secret--visible {
+  -webkit-text-security: none;
 }
 
 .btn-small {
-  background: #333333;
+  background: #3a3a3a;
   border: 1px solid #444;
-  color: #ccc;
+  color: #ddd;
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -142,8 +146,8 @@ function viewDetail(item) {
 }
 
 .btn-history {
-  border-color: #88844;
-  color: #888;
+  border-color: #99944;
+  color: #999;
 }
 
 .btn-history:hover {
@@ -154,7 +158,7 @@ function viewDetail(item) {
   display: flex;
   gap: 4px;
   margin-bottom: 20px;
-  background: #1e1e1e;
+  background: #222222;
   padding: 4px;
   border-radius: 10px;
 }
@@ -164,7 +168,7 @@ function viewDetail(item) {
   padding: 10px;
   background: transparent;
   border: none;
-  color: #888;
+  color: #999;
   font-size: 1rem;
   cursor: pointer;
   border-radius: 8px;
@@ -172,12 +176,12 @@ function viewDetail(item) {
 }
 
 .tabs button.active {
-  background: #333333;
+  background: #3a3a3a;
   color: #fff;
 }
 
 .tabs button:hover:not(.active) {
-  color: #ccc;
+  color: #ddd;
 }
 
 .content {

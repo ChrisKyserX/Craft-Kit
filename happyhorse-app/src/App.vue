@@ -7,6 +7,12 @@
       <router-link to="/files" class="nav-link" active-class="active">
         📂 文件浏览
       </router-link>
+      <router-link to="/agent" class="nav-link" active-class="active">
+        🤖 Agent
+      </router-link>
+      <router-link to="/settings" class="nav-link" active-class="active">
+        ⚙️ 设置
+      </router-link>
     </nav>
 
     <router-view />
@@ -21,8 +27,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #111111;
-  color: #e0e0e0;
+  background: #0d0d0d;
+  color: #f0f0f0;
   min-height: 100vh;
 }
 
@@ -36,10 +42,11 @@ body {
   display: flex;
   gap: 4px;
   margin-bottom: 24px;
-  background: #1e1e1e;
+  background: #1a1a1a;
   padding: 4px;
   border-radius: 10px;
-  border: 1px solid #333333;
+  border: 1px solid #3a3a3a;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
 .nav-link {
@@ -47,7 +54,7 @@ body {
   padding: 10px;
   background: transparent;
   border: none;
-  color: #888;
+  color: #999;
   font-size: 1rem;
   cursor: pointer;
   border-radius: 8px;
@@ -57,11 +64,12 @@ body {
 }
 
 .nav-link:hover {
-  color: #ccc;
+  color: #ddd;
 }
 
 .nav-link.active {
-  background: #333333;
+  background: #3a3a3a;
   color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 </style>

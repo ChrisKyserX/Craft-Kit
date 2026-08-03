@@ -284,8 +284,8 @@ async function confirmUpload() {
 }
 
 .modal-container {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4a;
+  background: #1e1e1e;
+  border: 1px solid #333333;
   border-radius: 16px;
   width: 90%;
   max-width: 720px;
@@ -305,7 +305,7 @@ async function confirmUpload() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #333333;
 }
 
 .modal-header h2 { font-size: 1.2rem; color: #e0e0e0; }
@@ -314,18 +314,18 @@ async function confirmUpload() {
 
 .btn-clear {
   background: transparent;
-  border: 1px solid #ff6b6b44;
-  color: #ff6b6b;
+  border: 1px solid #cc444444;
+  color: #cc4444;
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
 }
 
-.btn-clear:hover { background: #ff6b6b22; }
+.btn-clear:hover { background: #cc444422; }
 
 .btn-close {
-  background: #2a2a4a;
+  background: #333333;
   border: none;
   color: #ccc;
   width: 32px;
@@ -335,13 +335,13 @@ async function confirmUpload() {
   font-size: 1rem;
 }
 
-.btn-close:hover { background: #3a3a5a; }
+.btn-close:hover { background: #555555; }
 
 .modal-tabs {
   display: flex;
   gap: 4px;
   padding: 12px 20px;
-  background: #151525;
+  background: #1a1a1a;
 }
 
 .modal-tabs button {
@@ -356,7 +356,7 @@ async function confirmUpload() {
   transition: all 0.2s;
 }
 
-.modal-tabs button.active { background: #2a2a4a; color: #fff; }
+.modal-tabs button.active { background: #333333; color: #fff; }
 
 .modal-body {
   flex: 1;
@@ -379,8 +379,8 @@ async function confirmUpload() {
 }
 
 .history-card {
-  background: #0f0f1a;
-  border: 1px solid #2a2a4a;
+  background: #111111;
+  border: 1px solid #333333;
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
@@ -389,14 +389,14 @@ async function confirmUpload() {
 }
 
 .history-card:hover {
-  border-color: #6bcb77;
+  border-color: #888;
   transform: translateY(-2px);
 }
 
 .card-thumb {
   width: 100%;
   height: 130px;
-  background: #151525;
+  background: #1a1a1a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -486,7 +486,7 @@ async function confirmUpload() {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #ffd93d;
+  color: #888;
   font-size: 0.8rem;
 }
 
@@ -494,7 +494,7 @@ async function confirmUpload() {
   width: 20px;
   height: 20px;
   border: 2px solid #444;
-  border-top-color: #ffd93d;
+  border-top-color: #888;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -527,8 +527,8 @@ async function confirmUpload() {
 }
 
 .name-dialog {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4a;
+  background: #1e1e1e;
+  border: 1px solid #333333;
   border-radius: 12px;
   width: 90%;
   max-width: 440px;
@@ -540,7 +540,7 @@ async function confirmUpload() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #333333;
 }
 
 .name-dialog-header h3 { font-size: 1.1rem; color: #e0e0e0; }
@@ -554,8 +554,8 @@ async function confirmUpload() {
 }
 
 .dialog-desc code {
-  background: #0f0f1a;
-  color: #4ecdc4;
+  background: #111111;
+  color: #aaa;
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -572,7 +572,7 @@ async function confirmUpload() {
 
 .form-group input {
   width: 100%;
-  background: #0f0f1a;
+  background: #111111;
   border: 1px solid #333;
   border-radius: 8px;
   padding: 10px 12px;
@@ -581,10 +581,10 @@ async function confirmUpload() {
   outline: none;
 }
 
-.form-group input:focus { border-color: #4ecdc4; }
+.form-group input:focus { border-color: #aaa; }
 
 .error-inline {
-  color: #ff6b6b;
+  color: #cc4444;
   font-size: 0.85rem;
   margin-top: 8px;
 }
@@ -594,11 +594,11 @@ async function confirmUpload() {
   justify-content: flex-end;
   gap: 8px;
   padding: 16px 20px;
-  border-top: 1px solid #2a2a4a;
+  border-top: 1px solid #333333;
 }
 
 .btn-cancel {
-  background: #2a2a4a;
+  background: #333333;
   border: none;
   color: #ccc;
   padding: 8px 16px;
@@ -607,10 +607,10 @@ async function confirmUpload() {
   font-size: 0.9rem;
 }
 
-.btn-cancel:hover { background: #3a3a5a; }
+.btn-cancel:hover { background: #555555; }
 
 .btn-confirm {
-  background: linear-gradient(135deg, #4ecdc4, #44a08d);
+  background: linear-gradient(135deg, #444, #333);
   border: none;
   color: #fff;
   padding: 8px 20px;

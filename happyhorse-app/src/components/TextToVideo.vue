@@ -177,10 +177,10 @@ async function submitTask() {
 }
 
 .form-section {
-  background: #1a1a2e;
+  background: #1e1e1e;
   padding: 20px;
   border-radius: 12px;
-  border: 1px solid #2a2a4a;
+  border: 1px solid #333333;
   margin-bottom: 16px;
 }
 
@@ -196,7 +196,7 @@ async function submitTask() {
 .form-group textarea,
 .form-group select {
   width: 100%;
-  background: #0f0f1a;
+  background: #111111;
   border: 1px solid #333;
   border-radius: 8px;
   padding: 10px 12px;
@@ -209,7 +209,7 @@ async function submitTask() {
 
 .form-group textarea:focus,
 .form-group select:focus {
-  border-color: #6bcb77;
+  border-color: #888;
 }
 
 .form-row {
@@ -221,7 +221,7 @@ async function submitTask() {
 .btn-primary {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #6bcb77, #4ecdc4);
+  background: linear-gradient(135deg, #444, #555);
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -239,8 +239,8 @@ async function submitTask() {
 .status-card {
   padding: 16px;
   border-radius: 10px;
-  border: 1px solid #2a2a4a;
-  background: #1a1a2e;
+  border: 1px solid #333333;
+  background: #1e1e1e;
 }
 
 .status-header {
@@ -254,12 +254,12 @@ async function submitTask() {
 .task-id { margin-top: 8px; font-size: 0.8rem; color: #666; }
 .task-id code { color: #888; word-break: break-all; }
 
-.error-msg { margin-top: 8px; color: #ff6b6b; font-size: 0.9rem; }
+.error-msg { margin-top: 8px; color: #cc4444; font-size: 0.9rem; }
 
 .spinner {
   width: 16px; height: 16px;
   border: 2px solid #444;
-  border-top-color: #6bcb77;
+  border-top-color: #888;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-left: auto;
@@ -268,7 +268,7 @@ async function submitTask() {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .status-pending { border-color: #555; }
-.status-running { border-color: #ffd93d; }
-.status-success { border-color: #6bcb77; }
-.status-error { border-color: #ff6b6b; }
+.status-running { border-color: #888; }
+.status-success { border-color: #888; }
+.status-error { border-color: #cc4444; }
 </style>

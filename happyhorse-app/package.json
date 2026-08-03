@@ -9,8 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@milkdown/core": "^7.21.3",
+    "@milkdown/preset-commonmark": "^7.21.3",
+    "@milkdown/theme-nord": "^7.21.3",
+    "@milkdown/utils": "^7.21.3",
     "axios": "^1.7.0",
     "cos-js-sdk-v5": "^1.10.1",
+    "marked": "^18.0.7",
     "vue": "^3.5.0",
     "vue-router": "^4.6.4"
   },

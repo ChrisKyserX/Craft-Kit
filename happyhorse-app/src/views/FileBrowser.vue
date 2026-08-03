@@ -121,11 +121,22 @@
           </div>
           <div class="form-group">
             <label>SecretKey（可选，列出文件需要）</label>
-            <input
-              v-model="settingsForm.secretKey"
-              type="password"
-              placeholder="xxxxxxxxxxxxxxxx"
-            />
+            <div class="secret-input-wrapper">
+              <input
+                v-model="settingsForm.secretKey"
+                type="text"
+                :class="['input-secret', { 'input-secret--visible': showSecretKey }]"
+                placeholder="xxxxxxxxxxxxxxxx"
+              />
+              <button
+                class="btn-toggle-secret"
+                type="button"
+                @click="showSecretKey = !showSecretKey"
+                :title="showSecretKey ? '隐藏' : '显示'"
+              >
+                {{ showSecretKey ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <p class="settings-hint">
             💡 配置保存在浏览器本地。列出文件需要 SecretId/SecretKey，可在
@@ -289,12 +300,125 @@
         </div>
       </div>
     </div>
+
+    <!-- 文本弹窗（预览/编辑） -->
+    <div v-if="editor.show" class="preview-overlay" @click.self="closeEditor">
+      <div class="preview-container text-preview-container">
+        <div class="preview-header">
+          <h3>{{ editor.name }}</h3>
+          <div class="preview-actions">
+            <template v-if="editor.editing">
+              <button class="btn-action btn-cancel-action" @click="cancelEdit">
+                {{ cancelEditConfirm ? '确认取消' : '取消' }}
+              </button>
+              <button class="btn-action" @click="showSaveDialog = true">💾 保存</button>
+            </template>
+            <template v-else>
+              <button v-if="editor.isHtml" class="btn-action" @click="previewHtml">🌐 效果预览</button>
+              <button class="btn-action" @click="enterEditMode">✏️ 编辑</button>
+            </template>
+            <button class="btn-close" @click="closeEditor">✕</button>
+          </div>
+        </div>
+        <div class="preview-body text-preview-body">
+          <div v-if="editor.loading" class="loading-state">
+            <div class="spinner"></div>
+            <p>加载中...</p>
+          </div>
+
+          <!-- 预览模式 -->
+          <div v-show="!editor.editing && !editor.loading" style="width: 100%;">
+            <template v-if="htmlPreview">
+              <div class="html-preview-bar">
+                <button class="btn-action" @click="openHtmlInNewWindow">🔗 新窗口</button>
+                <button class="btn-action btn-cancel-action" @click="htmlPreview = false">关闭预览</button>
+              </div>
+              <iframe
+                :srcdoc="editor.content"
+                class="html-preview-iframe"
+                sandbox="allow-scripts allow-same-origin"
+              ></iframe>
+            </template>
+            <template v-else>
+              <div v-if="editor.isMarkdown" class="markdown-body" v-html="editor.rendered"></div>
+              <pre v-else class="text-body">{{ editor.content }}</pre>
+            </template>
+          </div>
+
+          <!-- 编辑模式 -->
+          <div v-show="editor.editing" class="editor-wrapper">
+            <div v-if="editor.isMarkdown" ref="milkdownContainer" class="milkdown-container"></div>
+            <textarea
+              v-else
+              v-model="editor.content"
+              class="text-editor"
+              spellcheck="false"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 保存弹窗 -->
+    <div v-if="showSaveDialog" class="save-overlay" @click.self="showSaveDialog = false">
+      <div class="save-container">
+        <div class="save-header">
+          <h2>💾 保存文件</h2>
+          <button class="btn-close" @click="showSaveDialog = false">✕</button>
+        </div>
+        <div class="save-body">
+          <div class="form-group">
+            <label class="radio-label">
+              <input type="radio" v-model="saveMode" value="new" />
+              <span>新建文件</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" v-model="saveMode" value="overwrite" />
+              <span>覆盖文件</span>
+            </label>
+          </div>
+
+          <div v-if="saveMode === 'new'" class="form-group">
+            <label>新文件名</label>
+            <input
+              v-model="saveNewName"
+              type="text"
+              class="save-name-input"
+              placeholder="输入新文件名"
+            />
+            <p class="path-hint">保存到当前目录：{{ currentPath }}</p>
+          </div>
+
+          <div v-if="saveMode === 'overwrite'" class="form-group">
+            <p class="overwrite-warning">⚠️ 将覆盖现有文件「{{ editor.name }}」，此操作不可撤销。</p>
+          </div>
+
+          <div v-if="saveError" class="error-inline">❌ {{ saveError }}</div>
+        </div>
+        <div class="save-footer">
+          <button class="btn-cancel" @click="showSaveDialog = false" :disabled="saving">取消</button>
+          <button
+            class="btn-save"
+            :disabled="saving"
+            @click="saveMode === 'overwrite' ? confirmOverwrite() : doSave()"
+          >
+            {{ saveMode === 'overwrite' && !overwriteConfirmed ? '确认覆盖' : (saving ? '保存中...' : '保存') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
-import { listObjects, getCosConfig, saveCosConfig, uploadFile, createFolder, formatSize } from '../api/cos.js'
+import { ref, computed, reactive, onMounted, nextTick, watch } from 'vue'
+import { listObjects, getCosConfig, saveCosConfig, uploadFile, createFolder, formatSize, saveFile } from '../api/cos.js'
+import { marked } from 'marked'
+import { Editor, defaultValueCtx, rootCtx } from '@milkdown/core'
+import { commonmark } from '@milkdown/preset-commonmark'
+import { nord } from '@milkdown/theme-nord'
+import '@milkdown/theme-nord/style.css'
+import { getMarkdown } from '@milkdown/utils'
 
 const currentPath = ref('')
 const folders = ref([])
@@ -326,6 +450,20 @@ const newFolderPath = ref('')
 const newFolderName = ref('')
 const creatingFolder = ref(false)
 const createFolderError = ref('')
+const showSecretKey = ref(false)
+const editor = ref({ show: false, name: '', content: '', rendered: '', isMarkdown: false, isHtml: false, editing: false, loading: false, key: '' })
+const cancelEditConfirm = ref(false)
+const htmlPreview = ref(false)
+const milkdownContainer = ref(null)
+let milkdownEditor = null
+
+// 保存弹窗
+const showSaveDialog = ref(false)
+const saveMode = ref('new')
+const saveNewName = ref('')
+const saving = ref(false)
+const saveError = ref('')
+const overwriteConfirmed = ref(false)
 
 const breadcrumbs = computed(() => {
   if (!currentPath.value) return []
@@ -406,22 +544,169 @@ function enterFolder(folderName) {
   loadFiles()
 }
 
-function selectFile(file) {
+async function selectFile(file) {
   if (file.isImage) {
     previewFile.value = file
-  } else {
-    downloadFile(file)
+  } else if (file.isText || file.isMarkdown) {
+    editor.value = { show: true, name: file.name, content: '', rendered: '', isMarkdown: file.isMarkdown, isHtml: file.isHtml, editing: false, loading: true, key: file.key }
+    try {
+      const response = await fetch(file.url)
+      const text = await response.text()
+      editor.value.content = text
+      editor.value.rendered = file.isMarkdown ? marked(text) : ''
+      editor.value.loading = false
+
+      if (file.isMarkdown) {
+        await nextTick()
+        initMilkdown(text)
+      }
+    } catch (err) {
+      console.error('加载文件失败:', err)
+      editor.value.content = '加载文件失败'
+      editor.value.loading = false
+    }
   }
 }
 
-function downloadFile(file) {
-  const link = document.createElement('a')
-  link.href = file.url
-  link.download = file.name
-  link.target = '_blank'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+async function enterEditMode() {
+  editor.value.editing = true
+  cancelEditConfirm.value = false
+  if (editor.value.isMarkdown) {
+    await nextTick()
+    initMilkdown(editor.value.content)
+  }
+}
+
+function cancelEdit() {
+  if (!cancelEditConfirm.value) {
+    cancelEditConfirm.value = true
+    return
+  }
+  destroyMilkdown()
+  editor.value.editing = false
+  cancelEditConfirm.value = false
+}
+
+function previewHtml() {
+  htmlPreview.value = true
+}
+
+function openHtmlInNewWindow() {
+  const win = window.open('', '_blank')
+  win.document.write(editor.value.content)
+  win.document.close()
+}
+
+function initMilkdown(content) {
+  destroyMilkdown()
+  const container = milkdownContainer.value
+  Editor.make()
+    .config((ctx) => {
+      nord(ctx)
+      ctx.set(rootCtx, container)
+      ctx.set(defaultValueCtx, content)
+    })
+    .use(commonmark)
+    .create(container)
+    .then(ed => {
+      milkdownEditor = ed
+    })
+}
+
+function destroyMilkdown() {
+  if (milkdownEditor) {
+    milkdownEditor.destroy()
+    milkdownEditor = null
+  }
+}
+
+function closeEditor() {
+  destroyMilkdown()
+  cancelEditConfirm.value = false
+  htmlPreview.value = false
+  editor.value = { show: false, name: '', content: '', rendered: '', isMarkdown: false, isHtml: false, editing: false, loading: false, key: '' }
+}
+
+function getEditorContent() {
+  if (editor.value.isMarkdown && milkdownEditor) {
+    return getMarkdown()(milkdownEditor.ctx) || ''
+  }
+  return editor.value.content
+}
+
+// 打开保存弹窗时初始化状态
+watch(showSaveDialog, (val) => {
+  if (val) {
+    saveMode.value = 'new'
+    saveError.value = ''
+    overwriteConfirmed.value = false
+    const now = new Date()
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+    const dotIndex = editor.value.name.lastIndexOf('.')
+    if (dotIndex > 0) {
+      saveNewName.value = editor.value.name.slice(0, dotIndex) + '-' + dateStr + editor.value.name.slice(dotIndex)
+    } else {
+      saveNewName.value = editor.value.name + '-' + dateStr
+    }
+  }
+})
+
+function confirmOverwrite() {
+  if (!overwriteConfirmed.value) {
+    overwriteConfirmed.value = true
+    return
+  }
+  doSave()
+}
+
+async function doSave() {
+  const content = getEditorContent()
+  saveError.value = ''
+
+  let key
+  if (saveMode.value === 'new') {
+    if (!saveNewName.value.trim()) {
+      saveError.value = '请输入文件名'
+      return
+    }
+    key = currentPath.value + saveNewName.value.trim()
+  } else {
+    if (!overwriteConfirmed.value) {
+      saveError.value = '请再次点击确认覆盖'
+      return
+    }
+    key = editor.value.key
+  }
+
+  saving.value = true
+  try {
+    await saveFile(key, content)
+    showSaveDialog.value = false
+    closeEditor()
+    loadFiles()
+  } catch (err) {
+    saveError.value = err.message || '保存失败'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function downloadFile(file) {
+  try {
+    const response = await fetch(file.url)
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = file.name
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(blobUrl)
+  } catch (err) {
+    console.error('下载失败:', err)
+    errorMsg.value = `下载 "${file.name}" 失败`
+  }
 }
 
 // === 上传功能 ===
@@ -550,7 +835,7 @@ async function confirmCreateFolder() {
 
 .page-header h1 {
   font-size: 1.8rem;
-  background: linear-gradient(135deg, #4ecdc4, #44a08d);
+  background: linear-gradient(135deg, #444, #333);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -572,9 +857,9 @@ async function confirmCreateFolder() {
 
 .btn-settings,
 .btn-upload {
-  background: #2a2a4a;
+  background: #333333;
   border: 1px solid #444;
-  color: #4ecdc4;
+  color: #aaa;
   padding: 8px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -584,22 +869,22 @@ async function confirmCreateFolder() {
 
 .btn-settings:hover,
 .btn-upload:hover {
-  background: #3a3a5a;
+  background: #555555;
 }
 
 .btn-upload {
-  color: #ffd93d;
-  border-color: #ffd93d44;
+  color: #888;
+  border-color: #88844;
 }
 
 .btn-upload:hover {
-  background: #ffd93d22;
+  background: #88888822;
 }
 
 .btn-create-folder {
-  background: #2a2a4a;
+  background: #333333;
   border: 1px solid #444;
-  color: #6bcb77;
+  color: #888;
   padding: 8px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -608,7 +893,7 @@ async function confirmCreateFolder() {
 }
 
 .btn-create-folder:hover {
-  background: #6bcb7722;
+  background: #88888822;
 }
 
 .page-header {
@@ -616,10 +901,10 @@ async function confirmCreateFolder() {
 }
 
 .breadcrumb {
-  background: #1a1a2e;
+  background: #1e1e1e;
   padding: 12px 16px;
   border-radius: 8px;
-  border: 1px solid #2a2a4a;
+  border: 1px solid #333333;
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -628,7 +913,7 @@ async function confirmCreateFolder() {
 }
 
 .crumb {
-  color: #4ecdc4;
+  color: #aaa;
   cursor: pointer;
   font-size: 0.9rem;
 }
@@ -651,9 +936,9 @@ async function confirmCreateFolder() {
 }
 
 .file-list {
-  background: #1a1a2e;
+  background: #1e1e1e;
   border-radius: 10px;
-  border: 1px solid #2a2a4a;
+  border: 1px solid #333333;
   overflow: hidden;
 }
 
@@ -662,7 +947,7 @@ async function confirmCreateFolder() {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #333333;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -672,15 +957,15 @@ async function confirmCreateFolder() {
 }
 
 .file-item:hover {
-  background: #22223a;
+  background: #2a2a2a;
 }
 
 .file-item.folder {
-  background: #151525;
+  background: #1a1a1a;
 }
 
 .file-item.folder:hover {
-  background: #1a1a30;
+  background: #252525;
 }
 
 .file-icon {
@@ -712,7 +997,7 @@ async function confirmCreateFolder() {
 }
 
 .btn-download:hover {
-  background: #2a2a4a;
+  background: #333333;
 }
 
 .empty-state {
@@ -737,7 +1022,7 @@ async function confirmCreateFolder() {
   width: 32px;
   height: 32px;
   border: 3px solid #333;
-  border-top-color: #4ecdc4;
+  border-top-color: #aaa;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 12px;
@@ -748,9 +1033,9 @@ async function confirmCreateFolder() {
 }
 
 .error-banner {
-  background: #ff6b6b22;
-  border: 1px solid #ff6b6b44;
-  color: #ff6b6b;
+  background: #cc444422;
+  border: 1px solid #cc444444;
+  color: #cc4444;
   padding: 12px 16px;
   border-radius: 8px;
   margin-top: 16px;
@@ -760,7 +1045,7 @@ async function confirmCreateFolder() {
 }
 
 .error-banner button {
-  background: #ff6b6b;
+  background: #cc4444;
   border: none;
   color: #fff;
   padding: 6px 12px;
@@ -770,7 +1055,7 @@ async function confirmCreateFolder() {
 }
 
 .error-banner button:hover {
-  background: #ff5252;
+  background: #cc4444;
 }
 
 /* 预览弹窗 */
@@ -791,8 +1076,8 @@ async function confirmCreateFolder() {
 }
 
 .preview-container {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4a;
+  background: #1e1e1e;
+  border: 1px solid #333333;
   border-radius: 12px;
   width: 90%;
   max-width: 900px;
@@ -812,7 +1097,7 @@ async function confirmCreateFolder() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #333333;
 }
 
 .preview-header h3 {
@@ -829,9 +1114,9 @@ async function confirmCreateFolder() {
 }
 
 .btn-action {
-  background: #2a2a4a;
+  background: #333333;
   border: none;
-  color: #4ecdc4;
+  color: #aaa;
   padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
@@ -839,11 +1124,19 @@ async function confirmCreateFolder() {
 }
 
 .btn-action:hover {
-  background: #3a3a5a;
+  background: #555555;
+}
+
+.btn-cancel-action {
+  color: #888;
+}
+
+.btn-cancel-action:hover {
+  background: #55555522;
 }
 
 .btn-close {
-  background: #2a2a4a;
+  background: #333333;
   border: none;
   color: #ccc;
   width: 32px;
@@ -854,7 +1147,7 @@ async function confirmCreateFolder() {
 }
 
 .btn-close:hover {
-  background: #3a3a5a;
+  background: #555555;
 }
 
 .preview-body {
@@ -875,11 +1168,236 @@ async function confirmCreateFolder() {
 
 .preview-footer {
   padding: 12px 20px;
-  border-top: 1px solid #2a2a4a;
+  border-top: 1px solid #333333;
   display: flex;
   justify-content: space-between;
   color: #888;
   font-size: 0.85rem;
+}
+
+/* 文本预览 */
+.text-preview-container {
+  max-width: 800px;
+}
+
+.text-preview-body {
+  padding: 24px;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.text-body {
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  width: 100%;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+.markdown-body {
+  color: #ccc;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  width: 100%;
+}
+
+.markdown-body :deep(h1) { font-size: 1.6rem; color: #e0e0e0; margin: 16px 0 8px; }
+.markdown-body :deep(h2) { font-size: 1.3rem; color: #e0e0e0; margin: 14px 0 6px; }
+.markdown-body :deep(h3) { font-size: 1.1rem; color: #e0e0e0; margin: 12px 0 4px; }
+.markdown-body :deep(p) { margin: 8px 0; }
+.markdown-body :deep(code) { background: #111111; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; color: #aaa; }
+.markdown-body :deep(pre) { background: #111111; padding: 16px; border-radius: 8px; overflow-x: auto; }
+.markdown-body :deep(pre code) { background: none; padding: 0; color: #ccc; }
+.markdown-body :deep(ul), .markdown-body :deep(ol) { padding-left: 24px; margin: 8px 0; }
+.markdown-body :deep(li) { margin: 4px 0; }
+.markdown-body :deep(a) { color: #aaa; }
+.markdown-body :deep(blockquote) { border-left: 3px solid #666; padding-left: 12px; margin: 8px 0; color: #777; }
+.markdown-body :deep(table) { border-collapse: collapse; width: 100%; margin: 12px 0; }
+.markdown-body :deep(th), .markdown-body :deep(td) { border: 1px solid #333333; padding: 8px 12px; text-align: left; }
+.markdown-body :deep(th) { background: #111111; color: #e0e0e0; }
+.markdown-body :deep(hr) { border: none; border-top: 1px solid #333333; margin: 16px 0; }
+
+/* HTML 预览 */
+.html-preview-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.html-preview-iframe {
+  width: 100%;
+  min-height: 500px;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  background: #fff;
+}
+
+/* 编辑器 */
+.editor-wrapper {
+  width: 100%;
+  min-height: 400px;
+}
+
+.milkdown-container {
+  min-height: 400px;
+  color: #ccc;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.milkdown-container :deep(.milkdown) {
+  background: #111111;
+  color: #ccc;
+}
+
+.milkdown-container :deep(.ProseMirror) {
+  background: #111111;
+  color: #ccc;
+  min-height: 400px;
+  padding: 16px;
+  outline: none;
+}
+
+.milkdown-container :deep(.ProseMirror) h1,
+.milkdown-container :deep(.ProseMirror) h2,
+.milkdown-container :deep(.ProseMirror) h3,
+.milkdown-container :deep(.ProseMirror) h4,
+.milkdown-container :deep(.ProseMirror) h5,
+.milkdown-container :deep(.ProseMirror) h6 {
+  color: #e0e0e0;
+}
+
+.milkdown-container :deep(.ProseMirror) code {
+  background: #1e1e1e;
+  color: #aaa;
+}
+
+.milkdown-container :deep(.ProseMirror) pre {
+  background: #1e1e1e;
+}
+
+.milkdown-container :deep(.ProseMirror) pre code {
+  color: #ccc;
+}
+
+.milkdown-container :deep(.ProseMirror) blockquote {
+  border-left-color: #555;
+  color: #888;
+}
+
+.milkdown-container :deep(.ProseMirror) a {
+  color: #aaa;
+}
+
+.milkdown-container :deep(.editor) {
+  padding: 0;
+  outline: none;
+  min-height: 400px;
+}
+
+.text-editor {
+  width: 100%;
+  min-height: 400px;
+  background: #111111;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px;
+  color: #ccc;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  resize: vertical;
+  outline: none;
+}
+
+.text-editor:focus {
+  border-color: #aaa;
+}
+
+/* 保存弹窗 */
+.save-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: fadeIn 0.2s ease;
+}
+
+.save-container {
+  background: #1e1e1e;
+  border: 1px solid #333333;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 440px;
+  animation: slideUp 0.3s ease;
+}
+
+.save-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #333333;
+}
+
+.save-header h2 {
+  font-size: 1.2rem;
+  color: #e0e0e0;
+}
+
+.save-body {
+  padding: 20px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #ccc;
+  font-size: 0.95rem;
+  padding: 8px 0;
+}
+
+.radio-label input[type="radio"] {
+  accent-color: #aaa;
+  width: 16px;
+  height: 16px;
+}
+
+.save-name-input {
+  width: 100%;
+  background: #111111;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.save-name-input:focus {
+  border-color: #aaa;
+}
+
+.overwrite-warning {
+  color: #888;
+  font-size: 0.85rem;
+  padding: 8px 0;
+}
+
+.save-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid #333333;
 }
 
 /* 配置弹窗 */
@@ -895,8 +1413,8 @@ async function confirmCreateFolder() {
 }
 
 .settings-container {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4a;
+  background: #1e1e1e;
+  border: 1px solid #333333;
   border-radius: 12px;
   width: 90%;
   max-width: 480px;
@@ -908,7 +1426,7 @@ async function confirmCreateFolder() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #333333;
 }
 
 .settings-header h2 {
@@ -934,7 +1452,7 @@ async function confirmCreateFolder() {
 .form-group input,
 .form-group select {
   width: 100%;
-  background: #0f0f1a;
+  background: #111111;
   border: 1px solid #333;
   border-radius: 8px;
   padding: 10px 12px;
@@ -945,7 +1463,7 @@ async function confirmCreateFolder() {
 
 .form-group input:focus,
 .form-group select:focus {
-  border-color: #4ecdc4;
+  border-color: #aaa;
 }
 
 .settings-hint {
@@ -956,7 +1474,43 @@ async function confirmCreateFolder() {
 }
 
 .settings-hint strong {
-  color: #ffd93d;
+  color: #888;
+}
+
+.secret-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.secret-input-wrapper .input-secret {
+  padding-right: 40px;
+}
+
+.input-secret {
+  -webkit-text-security: disc;
+}
+
+.input-secret.input-secret--visible {
+  -webkit-text-security: none;
+}
+
+.btn-toggle-secret {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.btn-toggle-secret:hover {
+  background: #333333;
 }
 
 .settings-footer {
@@ -964,11 +1518,11 @@ async function confirmCreateFolder() {
   justify-content: flex-end;
   gap: 8px;
   padding: 16px 20px;
-  border-top: 1px solid #2a2a4a;
+  border-top: 1px solid #333333;
 }
 
 .btn-cancel {
-  background: #2a2a4a;
+  background: #333333;
   border: none;
   color: #ccc;
   padding: 8px 16px;
@@ -978,11 +1532,11 @@ async function confirmCreateFolder() {
 }
 
 .btn-cancel:hover {
-  background: #3a3a5a;
+  background: #555555;
 }
 
 .btn-save {
-  background: linear-gradient(135deg, #4ecdc4, #44a08d);
+  background: linear-gradient(135deg, #444, #333);
   border: none;
   color: #fff;
   padding: 8px 20px;
@@ -1009,8 +1563,8 @@ async function confirmCreateFolder() {
 }
 
 .upload-container {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4a;
+  background: #1e1e1e;
+  border: 1px solid #333333;
   border-radius: 12px;
   width: 90%;
   max-width: 560px;
@@ -1022,7 +1576,7 @@ async function confirmCreateFolder() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #333333;
 }
 
 .upload-header h2 {
@@ -1041,7 +1595,7 @@ async function confirmCreateFolder() {
 
 .path-input {
   flex: 1;
-  background: #0f0f1a;
+  background: #111111;
   border: 1px solid #333;
   border-radius: 8px;
   padding: 10px 12px;
@@ -1051,13 +1605,13 @@ async function confirmCreateFolder() {
 }
 
 .path-input:focus {
-  border-color: #4ecdc4;
+  border-color: #aaa;
 }
 
 .btn-use-current {
-  background: #2a2a4a;
+  background: #333333;
   border: 1px solid #444;
-  color: #ffd93d;
+  color: #888;
   padding: 8px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -1066,7 +1620,7 @@ async function confirmCreateFolder() {
 }
 
 .btn-use-current:hover {
-  background: #3a3a5a;
+  background: #555555;
 }
 
 .path-hint {
@@ -1092,7 +1646,7 @@ async function confirmCreateFolder() {
 }
 
 .file-drop-zone.drag-over {
-  border-color: #ffd93d;
+  border-color: #888;
   background: rgba(255, 217, 61, 0.05);
 }
 
@@ -1131,8 +1685,8 @@ async function confirmCreateFolder() {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #0f0f1a;
-  border: 1px solid #2a2a4a;
+  background: #111111;
+  border: 1px solid #333333;
   border-radius: 6px;
   padding: 8px 10px;
 }
@@ -1158,7 +1712,7 @@ async function confirmCreateFolder() {
 .btn-remove-file {
   background: transparent;
   border: none;
-  color: #ff6b6b;
+  color: #cc4444;
   cursor: pointer;
   font-size: 0.9rem;
   padding: 2px 6px;
@@ -1166,14 +1720,14 @@ async function confirmCreateFolder() {
 }
 
 .btn-remove-file:hover {
-  background: #ff6b6b22;
+  background: #cc444422;
 }
 
 /* 上传进度 */
 .upload-progress {
   margin-top: 16px;
-  background: #0f0f1a;
-  border: 1px solid #2a2a4a;
+  background: #111111;
+  border: 1px solid #333333;
   border-radius: 8px;
   padding: 12px;
 }
@@ -1189,14 +1743,14 @@ async function confirmCreateFolder() {
 .progress-bar {
   width: 100%;
   height: 6px;
-  background: #2a2a4a;
+  background: #333333;
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4ecdc4, #44a08d);
+  background: linear-gradient(90deg, #555, #444);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -1215,11 +1769,11 @@ async function confirmCreateFolder() {
   justify-content: flex-end;
   gap: 8px;
   padding: 16px 20px;
-  border-top: 1px solid #2a2a4a;
+  border-top: 1px solid #333333;
 }
 
 .btn-upload-confirm {
-  background: linear-gradient(135deg, #ffd93d, #ff6b6b);
+  background: linear-gradient(135deg, #555, #333);
   border: none;
   color: #fff;
   padding: 8px 20px;
@@ -1251,8 +1805,8 @@ async function confirmCreateFolder() {
 }
 
 .folder-container {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4a;
+  background: #1e1e1e;
+  border: 1px solid #333333;
   border-radius: 12px;
   width: 90%;
   max-width: 480px;
@@ -1264,7 +1818,7 @@ async function confirmCreateFolder() {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #333333;
 }
 
 .folder-header h2 {
@@ -1277,7 +1831,7 @@ async function confirmCreateFolder() {
 }
 
 .error-inline {
-  color: #ff6b6b;
+  color: #cc4444;
   font-size: 0.85rem;
   margin-top: 8px;
 }
@@ -1287,11 +1841,11 @@ async function confirmCreateFolder() {
   justify-content: flex-end;
   gap: 8px;
   padding: 16px 20px;
-  border-top: 1px solid #2a2a4a;
+  border-top: 1px solid #333333;
 }
 
 .btn-create-confirm {
-  background: linear-gradient(135deg, #6bcb77, #4ecdc4);
+  background: linear-gradient(135deg, #444, #555);
   border: none;
   color: #fff;
   padding: 8px 20px;

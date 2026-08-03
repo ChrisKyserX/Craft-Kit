@@ -97,8 +97,8 @@ function formatDateTime(isoStr) {
 }
 
 .modal-container {
-  background: #1a1a2e;
-  border: 1px solid #2a2a4a;
+  background: #1e1e1e;
+  border: 1px solid #333333;
   border-radius: 16px;
   width: 90%;
   max-width: 700px;
@@ -118,7 +118,7 @@ function formatDateTime(isoStr) {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #2a2a4a;
+  border-bottom: 1px solid #333333;
 }
 
 .modal-header h2 {
@@ -133,9 +133,9 @@ function formatDateTime(isoStr) {
 }
 
 .btn-action {
-  background: #2a2a4a;
+  background: #333333;
   border: none;
-  color: #6bcb77;
+  color: #888;
   padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
@@ -144,11 +144,11 @@ function formatDateTime(isoStr) {
 }
 
 .btn-action:hover {
-  background: #3a3a5a;
+  background: #555555;
 }
 
 .btn-close {
-  background: #2a2a4a;
+  background: #333333;
   border: none;
   color: #ccc;
   width: 32px;
@@ -159,7 +159,7 @@ function formatDateTime(isoStr) {
 }
 
 .btn-close:hover {
-  background: #3a3a5a;
+  background: #555555;
 }
 
 .modal-body {
@@ -214,8 +214,8 @@ function formatDateTime(isoStr) {
 
 .tag {
   display: inline-block;
-  background: #2a2a4a;
-  color: #ffd93d;
+  background: #333333;
+  color: #888;
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -228,7 +228,7 @@ function formatDateTime(isoStr) {
 }
 
 .param-tag {
-  background: #0f0f1a;
+  background: #111111;
   border: 1px solid #333;
   color: #ccc;
   padding: 4px 10px;
@@ -243,7 +243,7 @@ function formatDateTime(isoStr) {
 }
 
 .video-link {
-  color: #6bcb77;
+  color: #888;
   font-size: 0.85rem;
   word-break: break-all;
   text-decoration: none;

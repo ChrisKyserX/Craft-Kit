@@ -21,7 +21,7 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0f0f1a;
+  background: #111111;
   color: #e0e0e0;
   min-height: 100vh;
 }
@@ -36,10 +36,10 @@ body {
   display: flex;
   gap: 4px;
   margin-bottom: 24px;
-  background: #1a1a2e;
+  background: #1e1e1e;
   padding: 4px;
   border-radius: 10px;
-  border: 1px solid #2a2a4a;
+  border: 1px solid #333333;
 }
 
 .nav-link {
@@ -61,7 +61,7 @@ body {
 }
 
 .nav-link.active {
-  background: #2a2a4a;
+  background: #333333;
   color: #fff;
 }
 </style>

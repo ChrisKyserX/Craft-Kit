@@ -89,7 +89,7 @@ function viewDetail(item) {
 
 .page-header h1 {
   font-size: 1.8rem;
-  background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77);
+  background: linear-gradient(135deg, #444, #333, #222);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -100,10 +100,10 @@ function viewDetail(item) {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1a1a2e;
+  background: #1e1e1e;
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px solid #2a2a4a;
+  border: 1px solid #333333;
 }
 
 .api-key-bar label {
@@ -114,7 +114,7 @@ function viewDetail(item) {
 
 .api-key-bar input {
   flex: 1;
-  background: #0f0f1a;
+  background: #111111;
   border: 1px solid #333;
   border-radius: 6px;
   padding: 8px 12px;
@@ -124,11 +124,11 @@ function viewDetail(item) {
 }
 
 .api-key-bar input:focus {
-  border-color: #6bcb77;
+  border-color: #888;
 }
 
 .btn-small {
-  background: #2a2a4a;
+  background: #333333;
   border: 1px solid #444;
   color: #ccc;
   padding: 6px 12px;
@@ -138,23 +138,23 @@ function viewDetail(item) {
 }
 
 .btn-small:hover {
-  background: #3a3a5a;
+  background: #555555;
 }
 
 .btn-history {
-  border-color: #ffd93d44;
-  color: #ffd93d;
+  border-color: #88844;
+  color: #888;
 }
 
 .btn-history:hover {
-  background: #ffd93d22;
+  background: #88888822;
 }
 
 .tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 20px;
-  background: #1a1a2e;
+  background: #1e1e1e;
   padding: 4px;
   border-radius: 10px;
 }
@@ -172,7 +172,7 @@ function viewDetail(item) {
 }
 
 .tabs button.active {
-  background: #2a2a4a;
+  background: #333333;
   color: #fff;
 }
 

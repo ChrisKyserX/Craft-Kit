@@ -96,7 +96,16 @@ export async function listObjects(prefix = '') {
         if (!fileName || fileName.endsWith('/')) return
 
         const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i.test(fileName)
-        const url = `https://${config.bucket}.cos.${config.region}.myqcloud.com/${key}`
+        const isMarkdown = /\.(md|markdown)$/i.test(fileName)
+        const isHtml = /\.(html|htm)$/i.test(fileName)
+        const isText = /\.(txt|log|json|xml|yml|yaml|toml|ini|cfg|conf|sh|bash|zsh|fish|py|js|ts|jsx|tsx|vue|html|css|scss|less|sql|rb|php|go|rs|java|kt|swift|c|cpp|h|hpp|env|editorconfig|gitignore|dockerfile|makefile)$/i.test(fileName)
+        const url = cos.getObjectUrl({
+          Bucket: config.bucket,
+          Region: config.region,
+          Key: key,
+          Sign: true,
+          Expires: 3600
+        })
 
         files.push({
           key,
@@ -104,7 +113,10 @@ export async function listObjects(prefix = '') {
           size: parseInt(item.Size) || 0,
           lastModified: item.LastModified,
           url,
-          isImage
+          isImage,
+          isMarkdown,
+          isText,
+          isHtml
         })
       })
     }
@@ -230,6 +242,34 @@ export async function uploadFileFromUrl(key, url, onProgress) {
     return result
   } catch (err) {
     console.error('[COS] Upload from URL error:', err)
+    throw err
+  }
+}
+
+/**
+ * 保存文本内容到 COS（创建或覆盖）
+ * @param {string} key - 文件在 COS 中的完整路径
+ * @param {string} content - 文本内容
+ * @returns {Promise<object>}
+ */
+export async function saveFile(key, content) {
+  const config = getCosConfig()
+  const cos = createCosInstance()
+
+  if (!config.secretId || !config.secretKey) {
+    throw new Error('保存文件需要配置 SecretId 和 SecretKey')
+  }
+
+  try {
+    const result = await cos.putObject({
+      Bucket: config.bucket,
+      Region: config.region,
+      Key: key,
+      Body: content
+    })
+    return result
+  } catch (err) {
+    console.error('[COS] Save file error:', err)
     throw err
   }
 }

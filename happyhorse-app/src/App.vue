@@ -7,12 +7,6 @@
       <router-link to="/files" class="nav-link" active-class="active">
         📂 文件浏览
       </router-link>
-      <router-link to="/agent" class="nav-link" active-class="active">
-        🤖 Agent
-      </router-link>
-      <router-link to="/settings" class="nav-link" active-class="active">
-        ⚙️ 设置
-      </router-link>
     </nav>
 
     <router-view />

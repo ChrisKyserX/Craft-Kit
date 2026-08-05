@@ -82,7 +82,7 @@
         </div>
         <div class="name-dialog-body">
           <p class="dialog-desc">
-            文件将上传到：<code>video_create_record/{{ todayFolder }}/</code>
+            文件将上传到：<code>{{ uploadingItem?.category === 'image' ? 'image_create_record' : 'video_create_record' }}/{{ todayFolder }}/</code>
           </p>
           <div class="form-group">
             <label>文件名称</label>
@@ -198,8 +198,10 @@ function confirmClear() {
 
 function openUploadDialog(item) {
   uploadingItem.value = item
-  // 默认文件名：用 task_id 或 id + .mp4
-  uploadFileName.value = `${item.taskId || item.id}.mp4`
+  const isImage = item.category === 'image'
+  // 默认文件名：用 task_id 或 id
+  const ext = isImage ? '.png' : '.mp4'
+  uploadFileName.value = `${item.taskId || item.id}${ext}`
   uploadError.value = ''
   showNameDialog.value = true
 }
@@ -212,8 +214,16 @@ async function confirmUpload() {
   }
 
   const item = uploadingItem.value
-  if (!item || !item.videoUrl) {
-    uploadError.value = '无有效视频链接'
+  if (!item) {
+    uploadError.value = '无有效记录'
+    return
+  }
+
+  const isImage = item.category === 'image'
+  const fileUrl = isImage ? (item.imageUrl || item.imageUrls?.[0]) : item.videoUrl
+
+  if (!fileUrl) {
+    uploadError.value = isImage ? '无有效图片链接' : '无有效视频链接'
     return
   }
 
@@ -222,12 +232,15 @@ async function confirmUpload() {
   item._uploading = true
 
   try {
-    const basePath = `video_create_record/${todayFolder.value}/`
+    const basePath = isImage
+      ? `image_create_record/${todayFolder.value}/`
+      : `video_create_record/${todayFolder.value}/`
 
-    // 1. 检查文件夹是否存在
+    // 1. 检查父文件夹是否存在
+    const parentPrefix = isImage ? 'image_create_record/' : 'video_create_record/'
     let folderExists = false
     try {
-      const result = await listObjects('video_create_record/')
+      const result = await listObjects(parentPrefix)
       folderExists = result.folders.includes(todayFolder.value)
     } catch {
       folderExists = false
@@ -235,9 +248,8 @@ async function confirmUpload() {
 
     // 2. 不存在则创建
     if (!folderExists) {
-      // 先确保 video_create_record/ 存在
       try {
-        await createFolder('video_create_record/')
+        await createFolder(parentPrefix)
       } catch {
         // 可能已存在，忽略
       }
@@ -248,9 +260,9 @@ async function confirmUpload() {
       }
     }
 
-    // 3. 上传视频文件
+    // 3. 上传文件
     const fullKey = basePath + fileName
-    await uploadFileFromUrl(fullKey, item.videoUrl)
+    await uploadFileFromUrl(fullKey, fileUrl)
 
     // 4. 标记为已上传
     markUploaded(item.id)

@@ -12,7 +12,17 @@
             class="btn-action"
             download
           >
-            ⬇️ 下载
+            ⬇️ 下载视频
+          </a>
+          <a
+            v-if="item.imageUrl && !item.videoUrl"
+            :href="item.imageUrl"
+            target="_blank"
+            rel="noopener"
+            class="btn-action"
+            download
+          >
+            ⬇️ 下载图片
           </a>
           <button class="btn-close" @click="$emit('close')">✕</button>
         </div>
@@ -24,19 +34,42 @@
           <video :src="item.videoUrl" controls autoplay loop></video>
         </div>
 
+        <!-- 图片展示 -->
+        <div v-if="item.imageUrls && item.imageUrls.length > 0" class="image-section">
+          <div :class="item.imageUrls.length > 1 ? 'image-grid' : 'image-single'">
+            <div v-for="(url, i) in item.imageUrls" :key="i" class="image-card">
+              <img :src="url" :alt="`图片 ${i + 1}`" />
+            </div>
+          </div>
+        </div>
+        <div v-else-if="item.imageUrl && !item.imageUrls" class="image-section">
+          <div class="image-single">
+            <img :src="item.imageUrl" alt="生成的图片" />
+          </div>
+        </div>
+
         <!-- 详情信息 -->
         <div class="detail-section">
+          <!-- 输入图片 -->
+          <div class="detail-row" v-if="item.inputImageUrl">
+            <label>参考图片</label>
+            <img :src="item.inputImageUrl" alt="参考图片" class="preview-img" />
+          </div>
           <div class="detail-row" v-if="item.prompt">
             <label>提示词</label>
             <p>{{ item.prompt }}</p>
           </div>
-          <div class="detail-row" v-if="item.imageUrl">
+          <div class="detail-row" v-if="item.imageUrl && item.category === 'video'">
             <label>首帧图片</label>
             <img :src="item.imageUrl" alt="首帧" class="preview-img" />
           </div>
           <div class="detail-row" v-if="item.type">
             <label>生成类型</label>
-            <span class="tag">{{ item.type === 'text-to-video' ? '文生视频' : '图生视频' }}</span>
+            <span class="tag">{{ typeLabel }}</span>
+          </div>
+          <div class="detail-row" v-if="item.modelName">
+            <label>模型</label>
+            <span class="tag">{{ item.modelName }}</span>
           </div>
           <div class="detail-row" v-if="item.params">
             <label>参数</label>
@@ -44,6 +77,10 @@
               <span v-if="item.params.size" class="param-tag">{{ item.params.size }}</span>
               <span v-if="item.params.duration" class="param-tag">{{ item.params.duration }}秒</span>
               <span v-if="item.params.resolution" class="param-tag">{{ item.params.resolution }}</span>
+              <span v-if="item.params.n && item.params.n > 1" class="param-tag">{{ item.params.n }}张</span>
+              <span v-if="item.params.promptExtend !== undefined" class="param-tag">提示词扩展: {{ item.params.promptExtend ? '开' : '关' }}</span>
+              <span v-if="item.params.thinkingMode !== undefined" class="param-tag">思考模式: {{ item.params.thinkingMode ? '开' : '关' }}</span>
+              <span v-if="item.params.watermark" class="param-tag">水印: 开</span>
             </div>
           </div>
           <div class="detail-row" v-if="item.taskId">
@@ -60,6 +97,12 @@
               {{ item.videoUrl }}
             </a>
           </div>
+          <div class="detail-row" v-if="item.imageUrl && item.category === 'image'">
+            <label>图片链接</label>
+            <a :href="item.imageUrl" target="_blank" rel="noopener" class="video-link">
+              {{ item.imageUrl }}
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -67,11 +110,22 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   item: { type: Object, required: true }
 })
 
 defineEmits(['close'])
+
+const typeLabel = computed(() => {
+  const t = props.item.type
+  if (t === 'text-to-video') return '文生视频'
+  if (t === 'image-to-video') return '图生视频'
+  if (t === 'text-to-image') return '文生图'
+  if (t === 'image-to-image') return '图生图'
+  return t
+})
 
 function formatDateTime(isoStr) {
   const d = new Date(isoStr)
@@ -210,6 +264,42 @@ function formatDateTime(isoStr) {
   max-height: 200px;
   border-radius: 8px;
   border: 1px solid #333;
+}
+
+/* 图片展示 */
+.image-section {
+  margin-bottom: 20px;
+}
+
+.image-single {
+  display: flex;
+  justify-content: center;
+}
+
+.image-single img {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 10px;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.image-grid .image-card {
+  border-radius: 8px;
+  overflow: hidden;
+  background: #111111;
+}
+
+.image-grid .image-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  min-height: 150px;
+  object-fit: cover;
 }
 
 .tag {

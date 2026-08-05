@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import VideoGenerator from '../views/VideoGenerator.vue'
+import ImageGenerator from '../views/ImageGenerator.vue'
 import FileBrowser from '../views/FileBrowser.vue'
 
 const routes = [
@@ -7,6 +8,11 @@ const routes = [
     path: '/',
     name: 'video',
     component: VideoGenerator
+  },
+  {
+    path: '/image',
+    name: 'image',
+    component: ImageGenerator
   },
   {
     path: '/files',

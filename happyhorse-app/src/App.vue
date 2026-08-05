@@ -4,6 +4,9 @@
       <router-link to="/" class="nav-link" active-class="active" exact>
         🎬 视频生成
       </router-link>
+      <router-link to="/image" class="nav-link" active-class="active">
+        🖼️ 图片生成
+      </router-link>
       <router-link to="/files" class="nav-link" active-class="active">
         📂 文件浏览
       </router-link>
